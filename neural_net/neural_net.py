@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 
+import pdb
+
 class NeuralNet(nn.Module):
     """
     Neural network implementation
@@ -13,14 +15,35 @@ class NeuralNet(nn.Module):
         """
         super(NeuralNet, self).__init__()
 
+        self.config = config
+        self.training_mode = True
+
+        # generate model
+        self.gen_model()
+
+    def gen_model(self):
+        """
+        Generates model based on config and training/testing
+        Side Effects:
+            self.model -- generates / updates model
+        """
         # unpack config
-        sizes = [config['input_size'], *config['hidden_layer_sizes'], config['output_size']]
+        sizes = [self.config['input_size'], *self.config['hidden_layer_sizes'], self.config['output_size']]
 
         # initialize hidden layer(s) and output layer
-        hls = [nn.Linear(l_size, sizes[n+1], bias=True) for n, l_size in enumerate(sizes[:-2])]
-        ol = nn.Linear(sizes[-2], sizes[-1], bias=True)
-        
-        self.model = nn.Sequential(*hls, ol, nn.LogSoftmax(dim=1))
+        if self.training_mode:
+            self.hls = [nn.Linear(l_size, sizes[n+1], bias=True) for n, l_size in enumerate(sizes[:-2])]
+            self.relus = [nn.ReLU(inplace=True)] * len(self.hls) 
+            self.ol = nn.Linear(sizes[-2], sizes[-1], bias=True)
+            self.dropouts = [nn.Dropout(self.config['dropout'])] * len(self.hls)
+
+            layers = [layer for layers in zip(self.hls, self.dropouts, self.relus) for layer in layers]
+
+        else:
+            layers = [layer for layers in zip(self.hls, self.relus) for layer in layers]
+
+        self.model = nn.Sequential(*layers, self.ol, nn.LogSoftmax(dim=1))
+            
 
     def forward(self, x):
         """
@@ -43,3 +66,12 @@ class NeuralNet(nn.Module):
         with torch.no_grad():
             output = self.forward(x)
             return torch.argmax(output)
+
+    def start_testing_mode(self):
+        """
+        Removes training layers from model for testing
+        Side Effects:
+            updates self.model
+        """
+        self.training_mode = False
+        self.gen_model() 

@@ -30,7 +30,8 @@ if __name__ == '__main__':
 
     # set up neural net and optimizer config
     nn_config = {'input_size': IMG_SIZE, 'output_size': 10, \
-                 'num_hidden_layers': 5, 'hidden_layer_sizes': (1000, 256, 128, 64, 32)}
+                 'num_hidden_layers': 2, 'hidden_layer_sizes': (128, 16), \
+                 'dropout': 0.2}
     optim_config = {'learning_rate': 0.005, 'momentum': 0.9}
 
     # initialize nn and trainer
@@ -52,6 +53,9 @@ if __name__ == '__main__':
     testset = datasets.MNIST('dataset/', download=True, \
                                train=False, transform=transform) 
     testloader = torch.utils.data.DataLoader(testset, batch_size = 1, shuffle=True)
+
+    # place model in testing mode
+    nn.start_testing_mode()
 
     num_correct = 0
     with tqdm(total = len(testloader)) as pbar:
